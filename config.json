@@ -1,0 +1,8 @@
+{
+    "BotToken": "discordbottokenhere",
+    "VaildDomains": {
+        "example.com": {
+            "wildcard": false
+        }
+    }
+}
