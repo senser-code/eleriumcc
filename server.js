@@ -22,7 +22,7 @@ app.use(express.static(path.join(__dirname, "uploads")));
 app.get("/", (req, res) => res.end(""));
 app.get("*", (req, res) => res.status(404).end("Not Found"));
 
-app.post("/upload", async function(req, res) {
+app.post("/upload", async (req, res) => {
     const Keys = require("./keys.json");
     if (!req.files.fdata) return res.status(400).end("fdata is required");
     if (!req.body.key) return res.status(400).end("Key is required");
