@@ -1,8 +1,3 @@
 {
-    "BotToken": "discordbottokenhere",
-    "VaildDomains": {
-        "example.com": {
-            "wildcard": false
-        }
-    }
+    "url": "https://elerium.cc/images"
 }
