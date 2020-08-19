@@ -19,7 +19,7 @@ function GenerateString(length) {
 };
 
 app.use(express.static(path.join(__dirname, "uploads")));
-app.get("/", (req, res) => res.redirect("https://stroketonscripts.xyz"));
+app.get("/", (req, res) => res.end("Hi"));
 app.get("*", (req, res) => res.status(404).end("Not Found"));
 
 app.post("/upload", async function(req, res) {
