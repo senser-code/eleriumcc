@@ -1,0 +1,24 @@
+{
+  "name": "eleriumcc",
+  "version": "1.0.0",
+  "description": "A improved to elerium.cc uploader v1 which is the code and the internals",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Stroketon/eleriumcc.git"
+  },
+  "author": "Stroketon",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Stroketon/eleriumcc/issues"
+  },
+  "homepage": "https://github.com/Stroketon/eleriumcc#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-fileupload": "^1.2.0"
+  }
+}
