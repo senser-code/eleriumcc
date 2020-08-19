@@ -1,7 +1,7 @@
 {
   "name": "eleriumcc",
   "version": "1.0.0",
-  "description": "A improved to elerium.cc uploader v1 which is the code and the internals",
+  "description": "A improvement to elerium.cc uploader v1 which is the code and ease of use",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
