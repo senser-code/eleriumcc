@@ -19,15 +19,13 @@ function GenerateString(length) {
 };
 
 app.use(express.static(path.join(__dirname, "uploads")));
-app.get("/", (req, res) => res.end("Hi"));
+app.get("/", (req, res) => res.end(""));
 app.get("*", (req, res) => res.status(404).end("Not Found"));
 
 app.post("/upload", async function(req, res) {
     const Keys = require("./keys.json");
-    if (!req.files.fdata) {
-        return res.status(500).end("fdata is required");
-    };
-    if (!req.body.key) return res.status(500).end("Key is required");
+    if (!req.files.fdata) return res.status(400).end("fdata is required");
+    if (!req.body.key) return res.status(400).end("Key is required");
     const File = req.files.fdata;
     const FileName = `${GenerateString(8)}${path.extname(File.name)}`;
     if (Keys.includes(req.body.key)) {
@@ -38,4 +36,4 @@ app.post("/upload", async function(req, res) {
     };
 });
 
-app.listen(5056);
+app.listen(config.port);
