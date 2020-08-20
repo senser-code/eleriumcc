@@ -1,0 +1,12 @@
+{
+  "Version": "13.1.0",
+  "Name": "main",
+  "DestinationType": "ImageUploader, TextUploader, FileUploader",
+  "RequestMethod": "POST",
+  "RequestURL": "https://uploads.elerium.cc/upload",
+  "Body": "MultipartFormData",
+  "Arguments": {
+    "key": "keyhere"
+  },
+  "FileFormName": "fdata"
+}
