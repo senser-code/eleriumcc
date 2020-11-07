@@ -4,5 +4,6 @@
         "example.com": {
             "wildcard": false
         }
-    }
+    },
+    "defaultDomain": "https://v1.elerium.cc"
 }

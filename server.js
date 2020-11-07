@@ -1,20 +1,13 @@
 const express = require("express")
 const fileUpload = require("express-fileupload")
 const fs = require("fs")
-const crypto = require("crypto")
 const app = express()
 const Discord = require("discord.js")
 const Bot = new Discord.Client()
-const nodemailer = require("nodemailer")
-const Config = JSON.parse(fs.readFileSync("./config.json", {encoding: "utf8"}))
-const Webhook = new Discord.WebhookClient("webhookhere", "webhookhere")
-const AdminWebhook = new Discord.WebhookClient("webhookhere", "webhookhere")
-const UploadsWebhook = new Discord.WebhookClient("webhookhere", "webhookhere")
-const KeySharingWebhook = new Discord.WebhookClient("webhookhere", "webhookhere")
-const InviteWebhook = new Discord.WebhookClient("webhookhere", "webhookhere")
 const uuid = require("uuid")
-const geoip = require("geoip-lite")
 const mime = require("mime")
+const config = require("./config.json");
+const path = require("path");
 const Prefix = "."
 var InviteSystem = {}
 let evalAccess = ["666367959119298617"]
@@ -95,9 +88,6 @@ function Embed(text, desc, objects) {
 
 app.set('view engine', 'ejs')
 
-function sha256(data) {
-    return crypto.createHash('sha256').update(data).digest('hex')
-}
 
 
 function getDomain(domain) {
@@ -111,16 +101,6 @@ function getDomain(domain) {
 }
 
 
-app.get("/domains", function(req, res) {
-    const VaildDomains = JSON.parse(fs.readFileSync("config.json", {encoding: "utf8"})).VaildDomains
-    var Domains = ""
-    Object.keys(VaildDomains).forEach(function(Domain) {
-        let DomainInfo = VaildDomains[Domain]
-        Domains += `${DomainInfo.wildcard && "*." || ""}${Domain}\n`
-    })
-    Domains += `\nthe "*" subdomain means you could use with any subdomains or without\nPlus here is how to use a domain https://unverified-ape.xyz/HFYY5uSj.png and discord is here https://elerium.cc/discord`
-    res.end(Domains)
-})
 
 app.get("/discord", function(req, res) {
     return res.redirect("https://discord.gg/dR5RwkR")
@@ -133,19 +113,12 @@ app.get("/config", function(req, res) {
             "Name": "elerium.cc",
             "DestinationType": "ImageUploader, TextUploader, FileUploader",
             "RequestMethod": "POST",
-            "RequestURL": "https://elerium.cc/upload",
+            "RequestURL": `${config.defaultDomain}/upload`,
             "Body": "MultipartFormData",
             "Arguments": {
                 "key": req.query.key
             },
             "FileFormName": "fdata"
-        }
-        if (req.query.domain) {
-            Config.Arguments["domain"] = req.query.domain
-        }
-        
-        if (req.query.embed) {
-            Config.Arguments["discord_embed"] = true
         }
 
         res.setHeader('Content-type', "application/octet-stream")
@@ -157,45 +130,9 @@ app.get("/config", function(req, res) {
 })
 
 
-function minTwoDigits(n) {
-    return (n < 10 ? '0' : '') + n
-}
+
 
 app.get("/:file", function(req, res) {
-    let mimetype = mime.getType(req.params.file) || "gg"
-    let mimeparsed = mimetype.split("/")
-    let allowedlist = [
-        "video",
-        "image"
-    ]
-    let mimeogtype = allowedlist.includes(mimeparsed[0]) && mimeparsed[0] || "image"
-    let ListToRender = {
-        url: `https://unverified-ape.xyz/${req.params.file}`,
-        rawurl: `https://unverified-ape.xyz/raw/${req.params.file}`,
-        mimetype: mimetype,
-        mimeogtype: mimeogtype,
-        card: mimeparsed[0] == "video" && "player" || "summary_large_image"
-    }
-
-    if (fs.existsSync("./uploads/" + req.params.file)) {
-        let DateObject = new Date(fs.statSync("./uploads/" + req.params.file).birthtime)
-        ListToRender["date"] = ` at ${DateObject.getDate()}/${DateObject.getUTCMonth() + 1}/${DateObject.getFullYear()} ${minTwoDigits(DateObject.getHours() + 1)}:${minTwoDigits(DateObject.getMinutes())}`
-    } else {
-        ListToRender["date"] = ""
-    }
-
-    if (mimeparsed[0] == "video") {
-        ListToRender["videourl"] = `<meta name="twitter:player" content="https://unverified-ape.xyz/${req.params.file}">\n`
-    } else {
-        ListToRender["videourl"] = ""
-    }
-
-    res.render("image", ListToRender)
-})
-
-
-
-app.get("/raw/:file", function(req, res) {
     if (req.params.file.split(".")[1] == "html") {
         res.set("Content-Type", "text/plain")
     }
@@ -209,53 +146,7 @@ app.get("/raw/:file", function(req, res) {
     })
 })
 
-function Check(IP, Key, HashedIP, filename, Domain) {
-    let Data = JSON.parse(fs.readFileSync("userinfo.json"))
-    let EmbedData = Embed("elerium", "A user uploaded a image", {
-        Key: Key,
-        IP: HashedIP,
-        Location: IP,
-        File: filename,
-        Url: Domain
-    })
-    EmbedData.setImage(`https://unverified-ape.xyz/raw/${filename}`)
-    function SendUploadLog() {
-        UploadsWebhook.send({embeds: [EmbedData]})
-    }
-    let UserInfo = Data[Key] || {
-        ignore_upload_flag: false
-    }
-    if (!UserInfo.ignore_upload_flag) {
-        SendUploadLog()
-    }
-    if (!Data[Key]) {
-        Data[Key] = {
-            IP: IP
-        }
-        fs.writeFileSync("userinfo.json", JSON.stringify(Data, null, "\t"))
-    } else {
-        let User = Data[Key]
-        if (User.IP !== "") {
-            if (User.IP !== IP) {
-                if (!User.ignore_flag) {
-                    KeySharingWebhook.send(Embed("elerium", "Key sharing detected", {
-                        Key: Key,
-                        Discord: User.DiscordId && `<@${User.DiscordId}>` || "Not found"
-                    }))
-                }
-            }
-        } else {
-            let User = Data[Key]
-            User.IP = IP
-            fs.writeFileSync("userinfo.json", JSON.stringify(Data, null, "\t"))
-        }
-    }
-}
-
 app.post("/upload", async function(req, res) {
-    if (req.headers["x-forwarded-host"] !== "elerium.cc") {
-        return res.status(500).end("Not allowed")
-    }
     const Keys = JSON.parse(fs.readFileSync("./keys.json", {encoding: "utf8"}))
     const VaildDomains = JSON.parse(fs.readFileSync("config.json", {encoding: "utf8"})).VaildDomains
     if (!req.files.fdata) {
@@ -264,125 +155,33 @@ app.post("/upload", async function(req, res) {
     if (!req.body.key) return res.status(500).end("Key is required")
     const File = req.files.fdata
     const FileDots = File.name.split(".")
-    const FileName = `${GenerateString(8)}.${FileDots[FileDots.length - 1]}`
-    const getDomainResult = getDomain(req.body.domain || "unverified-ape.xyz")
-    const ConvertedDomain = getDomainResult[0]
-    const Wildcard = getDomainResult[1]
-    const Domain = req.body.domain && ConvertedDomain || "unverified-ape.xyz"
+    const FileName = `${GenerateString(8)}${path.extname(File.name)}`;
     let allowedlist = [
         "video",
         "image"
     ]
     const ParsedMimeType = mime.getType(File.name).split("/")
     const DomainToShow = req.body.domain || "unverified-ape.xyz"
-    let info = geoip.lookup(req.headers["cf-connecting-ip"])
-    let HashedIP = sha256(req.headers["cf-connecting-ip"])
-    var Uploads = Number(fs.readFileSync("./uploads.txt", {encoding: "utf8"}))
     if (Keys.includes(req.body.key)) {
-        if (VaildDomains[Domain]) {
-            if (Wildcard && !VaildDomains[Domain].wildcard) {
-                return res.status(500).send("Domain was not wildcarded")
-            }
-            await File.mv("./uploads/" + FileName)
-            let Location = (req.body.discord_embed && allowedlist.includes(ParsedMimeType[0]) || false) && "/" || "/raw/"
-            res.end(`https://${DomainToShow}${Location}${FileName}`)
-            Uploads++
-            fs.writeFileSync("./uploads.txt", Uploads.toString())
-            Check(sha256(`${info.city}, ${info.country}`), req.body.key, HashedIP, FileName, `https://${DomainToShow}/${FileName}`)
-        } else {
-            res.status(500).send("Invaild Domain")
-        }
+        await File.mv("./uploads/" + FileName)
+        let Location = (req.body.discord_embed && allowedlist.includes(ParsedMimeType[0]) || false) && "/" || "/raw/"
+        res.end(`https://${DomainToShow}${Location}${FileName}`)
     } else {
         res.status(401).end("Invaild Key")
     }
 })
 
-app.post("/devupload", async function(req, res) {
-    if (req.headers["x-forwarded-host"] !== "elerium.cc") {
-        return res.status(500).end("Not allowed")
-    }
-    const Keys = JSON.parse(fs.readFileSync("./keys.json", {encoding: "utf8"}))
-    const VaildDomains = JSON.parse(fs.readFileSync("config.json", {encoding: "utf8"})).VaildDomains
-    if (!req.files.fdata) {
-        return res.status(500).end("fdata is required")
-    }
-    if (!req.body.key) return res.status(500).end("Key is required")
-    const File = req.files.fdata
-    console.log(File.name)
-    const FileDots = File.name.split(".")
-    const FileName = `${GenerateString(8)}.${FileDots[FileDots.length - 1]}`
-    const getDomainResult = getDomain(req.body.domain || "unverified-ape.xyz")
-    const ConvertedDomain = getDomainResult[0]
-    const Wildcard = getDomainResult[1]
-    const Domain = req.body.domain && ConvertedDomain || "unverified-ape.xyz"
-    let allowedlist = [
-        "video",
-        "image"
-    ]
-    const ParsedMimeType = mime.getType(File.name).split("/")
-    const DomainToShow = req.body.domain || "unverified-ape.xyz"
-    let info = geoip.lookup(req.headers["cf-connecting-ip"])
-    let HashedIP = sha256(req.headers["cf-connecting-ip"])
-    var Uploads = Number(fs.readFileSync("./uploads.txt", {encoding: "utf8"}))
-    if (Keys.includes(req.body.key)) {
-        if (VaildDomains[Domain]) {
-            if (Wildcard && !VaildDomains[Domain].wildcard) {
-                return res.status(500).send("Domain was not wildcarded")
-            }
-            await File.mv("./uploads/" + FileName)
-            let Location = (req.body.discord_embed && allowedlist.includes(ParsedMimeType[0]) || false) && "/" || "/raw/"
-            res.end(`https://${DomainToShow}${Location}${FileName}`)
-            Uploads++
-            fs.writeFileSync("./uploads.txt", Uploads.toString())
-            Check(sha256(`${info.city}, ${info.country}`), req.body.key, HashedIP, FileName, `https://${DomainToShow}/${FileName}`)
-        } else {
-            res.status(500).send("Invaild Domain")
-        }
-    } else {
-        res.status(401).end("Invaild Key")
-    }
-})
 
 function GetServer() {
     return Bot.guilds.cache.get("714790676524564520")
 }
 
-function GetAdminServer() {
-    return Bot.guilds.cache.get("721709812488077363")
-}
-
-
-Bot.on("guildMemberUpdate", function(oldmember, newmember) {
-    if (newmember.roles.cache.has("720917670333251655")) { // nitro booster
-        InviteSystem.add(newmember.id, 2) // add the 2 invites to them
-    }
-})
-
-function Blacklist(Key) {
-    let Data = JSON.parse(fs.readFileSync("userinfo.json"))
-    var Keys = JSON.parse(fs.readFileSync("./keys.json", {encoding: "utf8"}))
-    if (Keys.includes(Key)) {
-        let Index = Keys.findIndex(function(value) {
-            return value == Key
-        })
-        Keys.splice(Index, 1)
-        if (Data[Key]) {
-            Data[Key] = undefined
-        }
-        fs.writeFileSync("./keys.json", JSON.stringify(Keys, null, "\t"))
-        fs.writeFileSync("./userinfo.json", JSON.stringify(Data, null, "\t"))
-        console.log("Success")
-    } else {
-        console.log("Invaild")
-    }
-}
 
 function GetUsers() {
     let Data = JSON.parse(fs.readFileSync("userinfo.json"))
     return Data
 }
 
-// fs.writeFileSync("userinfo.json", JSON.stringify(Data, null, "\t")) use it to save data i guess
 
 Bot.on("guildMemberAdd", function(member) {
     if (member.guild.id == GetServer().id) {
